@@ -8,8 +8,8 @@
     <movie fps="30" />
     <movie width="800" />
     <movie height="600" />
-    <movie version="10" />
-    <movie minorVersion="1" />
+    <movie version="11" />
+    <movie minorVersion="6" />
     <movie platform="Flash Player" />
     <movie background="#FFFFFF" />
   </output>
@@ -55,6 +55,8 @@
     <element path="swc\SWC_Game.swc" />
     <element path="swc\SWC_MainMenu.swc" />
     <element path="swc\SWC_player.swc" />
+    <element path="swc\SWC_Obstacle.swc" />
+    <element path="swc\SWC_Pickup.swc" />
   </libraryPaths>
   <!-- External Libraries -->
   <externalLibraryPaths>
@@ -71,6 +73,19 @@
   <!-- Assets to embed into the output SWF -->
   <library>
     <asset path="img\doge.png" />
+    <asset path="img\apple.png" />
+    <asset path="img\orange.png" />
+    <asset path="img\peach.png" />
+    <asset path="bgm\BGM_mainMenu.mp3" />
+    <asset path="bgm\BGM_WildstarVanguard.mp3" />
+    <asset path="bgm\SFX_death.mp3" />
+    <asset path="bgm\SFX_fast.mp3" />
+    <asset path="bgm\SFX_menuOver.mp3" />
+    <asset path="bgm\SFX_power.mp3" />
+    <asset path="bgm\SFX_slow.mp3" />
+    <asset path="bgm\BGM_level.mp3" />
+    <asset path="bgm\BGM_levelDoge.mp3" />
+    <asset path="bgm\SFX_menuDown.mp3" />
   </library>
   <!-- Class files to compile (other referenced classes will automatically be included) -->
   <compileTargets>

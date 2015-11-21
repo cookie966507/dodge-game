@@ -7,6 +7,7 @@ package vgdev.dodge.props
 	import flash.ui.Keyboard;
 	import vgdev.dodge.ContainerGame;
 	import vgdev.dodge.mechanics.TimeScale;
+	import vgdev.dodge.SoundManager;
 	
 	/**
 	 * Instance of the player
@@ -34,6 +35,16 @@ package vgdev.dodge.props
 		
 		public var alive:Boolean = true;			// if the player is alive and playable
 		
+		private var timePointsMax:int = 100;
+		private var timePoints:int = 100;
+		private const TP_CHANGE:int = 1;			// set to 0 for debugging - infinite TP
+		
+		private var actualScore:int = 0;
+		private var displayedScore:int = 0;
+		private const CHANGE_SCORE:int = 5;
+		
+		private var cancelSpeedUp:Boolean = false;
+		
 		public function Player(_cg:ContainerGame)
 		{
 			super(_cg);
@@ -59,25 +70,47 @@ package vgdev.dodge.props
 		 */
 		override public function step():Boolean
 		{
-			if (!alive)
-				return completed;
+			if (alive)
+			{
+				updateVelocity();
+				updatePosition();
+			}
 			
-			updateVelocity();
-			updatePosition();
-			
-			// handle time scale based on if the time scale key is down or not
-			if (keysDown[TIME])
-				TimeScale.slowDown();
-			else
-				TimeScale.speedUp();
-			
+			updateTime();
+			updateScore();
+
 			return completed;
+		}
+		
+		/**
+		 * Handle time scale based on if the time scale key is down or not
+		 */
+		private function updateTime():void
+		{
+			if (alive && keysDown[TIME])
+			{
+				if (timePoints > 0)
+					TimeScale.slowDown();
+				else
+				{
+					TimeScale.speedUp();
+					if (!cancelSpeedUp)
+						SoundManager.playSound("sfx_fast");
+					cancelSpeedUp = true;
+				}
+				changeTimePoints( -TP_CHANGE * 2);
+			}
+			else
+			{
+				TimeScale.speedUp();
+				changeTimePoints(TP_CHANGE);
+			}
 		}
 		
 		/**
 		 * Update the player's x and y position based on its dx and dy
 		 */
-		private function updatePosition():void
+		override protected function updatePosition():void
 		{
 			mc_object.x = changeWithLimit(mc_object.x, dx, -400, 400);
 			mc_object.y = changeWithLimit(mc_object.y, dy, -300, 300);
@@ -106,6 +139,17 @@ package vgdev.dodge.props
 				if (Math.abs(dy) < speedLimitY * haltThreshold)
 					dy = 0;
 			}
+		}
+		
+		/**
+		 * Changes the displayed score to more accurately reflect the player's current score
+		 */
+		private function updateScore():void
+		{
+			if (actualScore > displayedScore)
+				displayedScore += Math.min(actualScore - displayedScore, CHANGE_SCORE);
+			else if (actualScore < displayedScore)
+				displayedScore -= Math.min(actualScore - displayedScore, CHANGE_SCORE);
 		}
 		
 		/**
@@ -155,6 +199,9 @@ package vgdev.dodge.props
 						mc_object.rotation = 0;
 				break;
 			}
+			
+			// keep TP indicator rotation rightside up
+			mc_object.tp_indicator.rotation = -mc_object.rotation;
 		}
 		
 		/**
@@ -168,18 +215,29 @@ package vgdev.dodge.props
 			switch (e.keyCode)
 			{
 				case Keyboard.W:
+				case Keyboard.UP:
 					keysDown[UP] = true;
 				break;
 				case Keyboard.A:
+				case Keyboard.LEFT:
 					keysDown[LEFT] = true;
 				break;
 				case Keyboard.S:
+				case Keyboard.DOWN:
 					keysDown[DOWN] = true;
 				break;
 				case Keyboard.D:
+				case Keyboard.RIGHT:
 					keysDown[RIGHT] = true;
 				break;
 				case Keyboard.SHIFT:
+				case Keyboard.SPACE:
+					if (timePoints > 0)
+					{
+						cancelSpeedUp = false;
+						if (!keysDown[TIME])
+							SoundManager.playSound("sfx_slow");
+					}
 					keysDown[TIME] = true;
 				break;
 			}
@@ -194,21 +252,56 @@ package vgdev.dodge.props
 			switch (e.keyCode)
 			{
 				case Keyboard.W:
+				case Keyboard.UP:
 					keysDown[UP] = false;
 				break;
 				case Keyboard.A:
+				case Keyboard.LEFT:
 					keysDown[LEFT] = false;
 				break;
 				case Keyboard.S:
+				case Keyboard.DOWN:
 					keysDown[DOWN] = false;
 				break;
 				case Keyboard.D:
+				case Keyboard.RIGHT:
 					keysDown[RIGHT] = false;
 				break;
 				case Keyboard.SHIFT:
+				case Keyboard.SPACE:
 					keysDown[TIME] = false;
+					if (TimeScale.s_scale < 1 && !cancelSpeedUp)
+						SoundManager.playSound("sfx_fast");
 				break;
 			}
+		}
+		
+		/**
+		 * Changes timePoints by the given amount
+		 * @param	tp		amount to change timePoints by
+		 */
+		public function changeTimePoints(tp:int):void
+		{
+			timePoints += tp;
+			if (timePoints < 0)
+				timePoints = 0;
+			else if (timePoints > timePointsMax)
+				timePoints = timePointsMax;
+			
+			// update TP indicator
+			var percent:Number = timePoints / timePointsMax;
+			if (percent >= .5)
+			{
+				mc_object.tp_indicator.base.maskL.rotation = 360 * percent;
+				mc_object.tp_indicator.base.maskR.rotation = 180;
+			}
+			else
+			{
+				mc_object.tp_indicator.base.maskL.rotation = 180;
+				mc_object.tp_indicator.base.maskR.rotation = 360 * percent;
+			}
+			if (percent < 1)
+				mc_object.tp_indicator.gotoAndPlay("visible");
 		}
 		
 		/**
@@ -219,6 +312,7 @@ package vgdev.dodge.props
 		{
 			if (!alive) return;
 			alive = false;
+			SoundManager.playSound("sfx_death");
 			
 			mc_object.play();
 			
@@ -234,5 +328,24 @@ package vgdev.dodge.props
 		{
 			return new Point(dx, dy);
 		}
+		
+		/**
+		 * Get the player's score to be displayed
+		 * @return		An int representing the score value to be displayed
+		 */
+		public function getScore():int
+		{
+			return displayedScore;
+		}
+		
+		/**
+		 * Changes the actualScore variable by a given integer
+		 * @param	s		value to change actualScore by
+		 */
+		public function addScore(s:int):void
+		{
+			actualScore += s;
+		}
+		
 	}
 }

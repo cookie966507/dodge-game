@@ -2,13 +2,16 @@ package vgdev.dodge.props
 {
 	import flash.display.MovieClip;
 	import vgdev.dodge.ContainerGame;
+	import flash.display.BitmapData;
+	import flash.geom.Point;
 	import vgdev.dodge.mechanics.TimeScale;
+	import vgdev.dodge.mechanics.HitTester;
 
 	/**
 	 * An abstract class containing functionality useful to all game objects
 	 * @author 	Alexander Huynh
 	 */
-	class ABST_Prop 
+	public class ABST_Prop 
 	{
 		/// A reference to the active instance of ContainerGame
 		protected var cg:ContainerGame;
@@ -21,6 +24,13 @@ package vgdev.dodge.props
 		
 		protected var dx:Number = 0;
 		protected var dy:Number = 0;
+		
+		///Rotation
+		protected var dr:Number = 0;
+		
+		
+		/// The JSON/Object parameters that were passed into the constructor, if any
+		protected var params:Object = new Object();
 
 		/**
 		 * Should only be called through super(), never instantiated
@@ -29,6 +39,19 @@ package vgdev.dodge.props
 		public function ABST_Prop(_cg:ContainerGame) 
 		{
 			cg = _cg;
+		}
+
+		/**
+		 * Helper used in the constructor to set parameters
+		 * @param	key			Key to use in params
+		 * @param	fallback	Default value to use if value is null
+		 * @return				Value of the key if not null; otherwise fallback
+		 */
+		protected function setParam(key:String, fallback:*):*
+		{
+			if (params[key])
+				return params[key];
+			return fallback;
 		}
 		
 		/**
@@ -41,14 +64,12 @@ package vgdev.dodge.props
 		}
 		
 		/**
-		 * Returns a random Number between min and max, inclusive
-		 * @param	min		The lower bound
-		 * @param	max		The upper bound
-		 * @return			A random Number between min and max
+		 * Move the obstacle's x and y according to its dx and dy
 		 */
-		protected function getRand(min:Number, max:Number):Number   
-		{  
-			return Math.random() * (max - min + 1) + min;  
+		protected function updatePosition():void
+		{
+			mc_object.x = changeWithLimit(mc_object.x, dx);
+			mc_object.y = changeWithLimit(mc_object.y, dy);
 		}
 		
 		/**
@@ -68,6 +89,17 @@ package vgdev.dodge.props
 			else if (original > limHigh)
 				original = limHigh;
 			return original;
+		}
+		
+		/**
+		 * Returns a random Number between min and max, inclusive
+		 * @param	min		The lower bound
+		 * @param	max		The upper bound
+		 * @return			A random Number between min and max
+		 */
+		protected function getRand(min:Number, max:Number):Number   
+		{  
+			return Math.random() * (max - min + 1) + min;  
 		}
 	}
 }
